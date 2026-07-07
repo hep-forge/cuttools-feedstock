@@ -1,5 +1,5 @@
 {% set versions = {
-    "0.0.0": "REPLACE_WITH_SHA256"
+    "2.0": "288374088b4050bf9546babdc02ddfd8d53dce8e5b86e0762241acb425551f23"
 } %}
 
 {% set version = environ.get('COMMIT_VERSION', None) %}
@@ -13,36 +13,43 @@ package:
   version: {{ environ.get('ANACONDA_VERSION', version)|replace("-", ".") }}
 
 source:
-  url: "https://www.ugr.es/~pittau/CutTools/archive/refs/tags/{{ version }}.tar.gz"   # TODO: confirm upstream's actual tag/tarball naming
+  url: "https://www.ugr.es/~pittau/CutTools/cuttools_v{{ version }}.tar.gz"
   {% if versions.get(version, None) %}
   sha256: {{ versions.get(version) }}
   {% endif %}
+  folder: source
+  patches:
+    # Only build CutTools itself -- MPFUN90/OneLOop/QCDLoop are their own
+    # hep-forge packages (mpfun90, oneloop), not vendored copies from this tree.
+    - build-only-cuttools-in-makefile.patch
 
 build:
   number: 0
-  run_exports:
-    - {{ pin_subpackage(name, max_pin="x.x.x") }}
 
 requirements:
   build:
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
     - {{ stdlib('c') }}
-    - cmake
+    - {{ compiler('gfortran') }}
     - make
+    - libtool
   host:
-    # TODO: library dependencies
-  run:
-    # TODO: runtime dependencies
+    - mpfun90
+    - oneloop
 
 test:
   commands:
-    - echo "TODO: a real smoke test"
+    - test -f $PREFIX/lib/libcts.a
+    - test -f $PREFIX/include/cts/def_propagator.mod
 
 about:
-  home: "https://www.ugr.es/~pittau/CutTools"
+  home: "https://www.ugr.es/~pittau/CutTools/"
   license: "MIT"
-  summary: "CutTools: numerical evaluation of one-loop amplitudes via OPP reduction"
+  license_file: source/LICENSE.txt
+  summary: "CutTools: computing 1-loop amplitudes at the integrand level"
+  description: |
+    CutTools evaluates one-loop amplitudes at the integrand level via the
+    OPP (Ossola-Papadopoulos-Pittau) reduction method, built on MPFUN90 and
+    OneLOop.
 
 extra:
   recipe-maintainers:
